@@ -15,11 +15,39 @@
 
 name: Publish fresh transcript
 on:
+  schedule:
+    - cron: '00 2 * * *' # 02:00 UTC
   workflow_dispatch:
+
+env:
+  GUILD_ID: '918498540232253480'
 
 jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-      - name: Hello world
-        run: echo "Hello world"
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Generate transcript
+        # TODO(florian): use released version.
+        uses: toitlang/action-discord-transcript@40bf7b2fa7c8d4d26d27692804e77681da99f918
+        with:
+          discord-credentials: ${{ secrets.DISCORD_TRANSCRIPT_CREDENTIALS }}
+          guild-id: ${{ env.GUILD_ID }}
+          transcript-directory: transcripts
+
+      - name: Commit and push
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          git add transcripts
+          git commit -m "Update transcripts"
+          git push
+
+      - name: "Upload to gh-pages"
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: transcripts
+          cname: discord-help.toit.io
